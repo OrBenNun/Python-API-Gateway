@@ -4,12 +4,19 @@ from utils.parameter_validator import validate_parameters
 from utils.ai_validation import ai_validation_func
 from llm_validation import validate_api_request
 from utils.ai_validation import read_validation_rules
+from utils.access_control import is_request_allowed
 
 app = Flask(__name__)
 
 SERVICES = {
     
 }
+
+@app.before_request
+def check_ip():
+    client_ip = request.remote_addr
+    if not is_request_allowed(client_ip):
+        return jsonify(message='Access denied'), 403
 
 @app.route('/')
 def home():
