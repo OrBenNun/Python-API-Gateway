@@ -1,33 +1,46 @@
 {
-    "login": {
-      "username": {
-        "type": "string",
-        "max_length": 200,
-        "required": true
+  "meta": {
+    "version": "1.0",
+    "description": "API configuration file for validation rules"
+  },
+  "rules": {
+    "endpoints": {
+      "login": {
+        "_description": "Handles user login by validating credentials.",
+        "parameters": {
+          "username": {
+            "type": "string",
+            "max_length": 200,
+            "required": true
+          },
+          "password": {
+            "type": "string",
+            "max_length": 200,
+            "required": true
+          }
+        }
       },
-      "password": {
-        "type": "string",
-        "max_length": 200,
-        "required": true
-      }
-    },
-    "create_order": {
-      "order_id": {
-        "type": "string",
-        "min_length": 1,
-        "max_length": 50,
-        "required": true
-      },
-      "item": {
-        "type": "string",
-        "max_length": 100,
-        "required": true
-      },
-      "quantity": {
-        "type": "integer",
-        "min_value": 1,
-        "required": true
+      "create_order": {
+        "_description": "Creates a new order.",
+        "parameters": {
+          "order_id": {
+            "type": "string",
+            "min_length": 1,
+            "max_length": 50,
+            "required": true
+          },
+          "item": {
+            "type": "string",
+            "max_length": 100,
+            "required": true
+          },
+          "quantity": {
+            "type": "integer",
+            "min_value": 1,
+            "required": true
+          }
+        }
       }
     }
   }
-  
+}
