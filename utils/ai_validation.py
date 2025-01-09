@@ -1,121 +1,109 @@
-# from transformers import AutoModelForCausalLM, AutoTokenizer
-# import torch
-# import json
-
-
-# # model_name = "Salesforce/codet5-small" 
-# # model = AutoModelForCausalLM.from_pretrained(model_name)
-# # tokenizer = AutoTokenizer.from_pretrained(model_name)
-
-# from transformers import RobertaTokenizer, T5ForConditionalGeneration
-# tokenizer = RobertaTokenizer.from_pretrained('Salesforce/codet5-small')
-# model = T5ForConditionalGeneration.from_pretrained('Salesforce/codet5-small')
-
-# # Function to load validation rules from a JSON file
-# def load_validation_rules_from_file(file_path='config\validation_rules.json'):
-#     # config\validation_rules.json
-#     with open(file_path, 'r') as f:
-#         return json.load(f)
-
-# # Function to communicate with the CodeParrot model to generate validation code
-# def generate_validation_code(validation_rules):
-#     prompt = f"""
-#     Based on the following validation rules, generate Python code to validate HTTP request parameters.
-
-#     {json.dumps(validation_rules, indent=2)}
-
-#     The generated code should:
-#     1. Check if required parameters are present.
-#     2. Check if the parameter types are correct.
-#     3. Check if parameters meet the specified constraints (min/max length, min/max value, etc.).
-#     4. Raise a meanfull Execption for any invalid parameters.
-#     """
-    
-#     inputs = tokenizer(prompt, return_tensors="pt")
-    
-#     # Generate code
-#     outputs = model.generate(inputs['input_ids'], max_length=1000)
-#     generated_code = tokenizer.decode(outputs[0], skip_special_tokens=True)
-    
-#     return generated_code
-
-# # Function to save the generated validation code to a Python file
-# def save_validation_code_to_file(validation_code, file_path='llm_parameter_validation.py'):
-#     with open(file_path, 'w') as f:
-#         f.write(validation_code)
-
-# # def ai_validate_parameters():
-
-# # Example Usage
-# validation_rules = load_validation_rules_from_file()
-# validation_code = generate_validation_code(validation_rules)
-
-# # Save the generated validation code to a Python file
-# save_validation_code_to_file(validation_code)
-
-# # The generated code will be saved to 'llm_parameter_validation.py'
-
-
-import os
 import json
-from transformers import AutoModelForCausalLM, AutoTokenizer
-from transformers import RobertaTokenizer, T5ForConditionalGeneration
+import requests
+from dotenv import load_dotenv
+import os
+import google.generativeai as genai
 
-class AIValidator:
-    def __init__(self, model_name="codet5-small", validation_file="config/validation_rules.json"):
-        self.model_name = model_name
-        # self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-        # self.model = AutoModelForCausalLM.from_pretrained(model_name)
-        self.tokenizer = RobertaTokenizer.from_pretrained('Salesforce/codet5-small')
-        self.model = T5ForConditionalGeneration.from_pretrained('Salesforce/codet5-small')
-        self.validation_file = validation_file
+load_dotenv()
 
-    def get_validation_file_path(self):
-        # Dynamically locate the validation file relative to the project's root directory
-        project_root = os.path.abspath(os.path.dirname(__file__))  # Locate current file's directory
-        file_path = os.path.join(project_root, "..", self.validation_file)  # Adjust for config directory
-        if not os.path.exists(file_path):
-            raise FileNotFoundError(f"Validation file not found at {file_path}")
-        return file_path
+def read_validation_rules(file_path):
+    with open(file_path, 'r') as file:
+        validation_rules = json.load(file)
+    return validation_rules
 
-    def load_validation_rules(self):
-        # Load validation rules from JSON
-        file_path = self.get_validation_file_path()
-        with open(file_path, 'r') as f:
-            return json.load(f)
 
-    def generate_validation_code(self, validation_rules):
-        # Create a prompt and generate Python code
-        prompt = f"""
-        Based on the following validation rules, generate Python code to validate HTTP request parameters.
+def send_to_gemini(validation_rules):
+    # # Replace with the actual endpoint and API key for Gemini LLM
+    # url = "https://api.gemini.com/v1/generate_code"
+    # headers = {
+    #     "Content-Type": "application/json",
+    #     "Authorization": f"Bearer {os.getenv('GEMINI_API_KEY')}"
+    # }
+    # payload = {
+        # "prompt": "Generate Python code to validate the following rules:",
+        # "rules": validation_rules
+    # }
+    # response = requests.post(url, headers=headers, json=payload)
+    # return response.json()['generated_code']
+    
+    genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
+    model = genai.GenerativeModel(
+                            model_name='gemini-1.5-pro',
+                            tools='code_execution')
+    
+    # response = model.generate_content((
+    # 'prompt: "Generate Python code to validate the parameters of the following api config file with the following rules:',
+    # f"rules: {validation_rules}",
+    # "Dont write any docs, write only the python code."))
+    response = model.generate_content((
+    '''
+        Generate Python code to validate API request parameters based on the following API configuration JSON. 
+        The script should:
+        - Understand the structure of the API configuration JSON.
+        - Create rules to validate the parameters of each endpoint.
+        - Validate the parameters based on the rules.
+        - Raise an error if a parameter does not meet the validation rules.
+        - Include appropriate error messages for each validation rule.
+        - Handle missing parameters and incorrect data types.
+        - Handle unkwon parameters and raise an error if an unknown parameter is present.
+        - The validation function should get the raw data from the request for example: {
+        "username": "testuser",
+        "password": "password123"
+        }
+        - Write only the Python code, and ensure the output does not include any comments, example usage, or additional text. 
 
-        {json.dumps(validation_rules, indent=2)}
+        Here is the configuration:
+        ''',
+        f"{validation_rules}"))
+    # '''
+    # Generate Python code to validate the parameters of the following API config file with the specified rules. 
+    # Write only the Python code, and ensure the output does not include any comments, example usage, or additional text. 
+    # Respond with just the code and nothing else.
+    # ''',
+    # f"rules: {validation_rules}"))
 
-        The generated code should:
-        1. Check if required parameters are present.
-        2. Check if the parameter types are correct.
-        3. Check if parameters meet the specified constraints (min/max length, min/max value, etc.).
-        4. Raise a BadRequest exception for any invalid parameters.
-        """
+    return response.text
+
+def save_generated_code(code, output_file):
+    with open(output_file, 'w') as file:
+        file.write(code)
         
-        inputs = self.tokenizer(prompt, return_tensors="pt")
-        outputs = self.model.generate(inputs['input_ids'], max_length=1000)
-        return self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+def clean_code_output(raw_output):
+    lines = raw_output.splitlines()
+    filtered_lines = [line for line in lines if not line.strip().startswith("```")]
+    return "\n".join(filtered_lines)
 
-    def save_validation_code(self, validation_code, file_path="llm_parameter_validation.py"):
-        # Save the generated validation code to a file
-        with open(file_path, 'w') as f:
-            f.write(validation_code)
-
-# Example usage
-if __name__ == "__main__":
-    ai_validator = AIValidator()
+def clean_file(filepath: str):
     try:
-        rules = ai_validator.load_validation_rules()
-        code = ai_validator.generate_validation_code(rules)
-        ai_validator.save_validation_code(code)
-        print("Validation code successfully generated and saved to llm_parameter_validation.py")
+        # Read the content of the file
+        with open(filepath, 'r', encoding='utf-8') as file:
+            raw_content = file.read()
+
+        # Clean the content
+        cleaned_content = clean_code_output(raw_content)
+
+        # Save the cleaned content back to the file
+        with open(filepath, 'w', encoding='utf-8') as file:
+            file.write(cleaned_content)
+
+        print(f"File '{filepath}' cleaned and saved successfully.")
+
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"An error occurred: {e}")
 
+# if __name__ == "__main__":
+#     file_path = 'config/validation_rules.json'
+#     validation_rules = read_validation_rules(file_path)
+#     generated_code = send_to_gemini(validation_rules)
+#     save_generated_code(generated_code, 'llm_validation.py')
+#     clean_file('llm_validation.py')
 
+def ai_validation_func():
+    file_path = 'config/validation_rules.json'
+    validation_rules = read_validation_rules(file_path)
+    generated_code = send_to_gemini(validation_rules)
+    save_generated_code(generated_code, 'llm_validation.py')
+    clean_file('llm_validation.py')
+    
+if __name__ == "__main__":
+    ai_validation_func()
