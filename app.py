@@ -6,7 +6,8 @@ from llm_validation import validate_api_request
 from utils.ai_validation import read_validation_rules
 from utils.access_control import is_request_allowed
 from functools import wraps
-from utils.auth.postgres_auth import validate_token_with_db
+# from utils.auth.postgres_auth import validate_token_with_db
+from utils.auth.validate_token import validate_token
 
 app = Flask(__name__)
 
@@ -55,7 +56,8 @@ def authenticate(f):
         auth_header = request.headers.get("Authorization")
         # if not auth_header or auth_header.split(" ")[1] not in VALID_TOKENS:
         #     return jsonify({"error": "Unauthorized access"}), 401
-        is_valid = validate_token_with_db(auth_header.split(" ")[1])
+        # is_valid = validate_token_with_db(auth_header.split(" ")[1])
+        is_valid = validate_token(auth_header.split(" ")[1])
         if not is_valid:
             return jsonify({"error": "Unauthorized access"}), 401
         return f(*args, **kwargs)

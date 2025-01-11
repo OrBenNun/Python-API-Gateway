@@ -1,7 +1,7 @@
 {
-    "auth_method": "database",
-    "database_type": "postgresql",
-    "database_url": "postgresql://postgres:postgres@localhost:5432/auth_server",
-    "table_name": "auth_tokens",
-    "column_name": "token"
-  }  
+  "auth_method": "database",
+  "database_type": "postgresql",
+  "database_url": "postgresql://postgres:postgres@localhost:5432/auth_server",
+  "table_name": "auth_tokens",
+  "column_name": "token"
+}  
