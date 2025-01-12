@@ -10,4 +10,10 @@ auth_method=database, database_type=mongodb, database_url, database_name, collec
 
 For your own auth server use the following fields:
   "auth_method": "api",
-  "auth_api_url": "authserverpath"
+  "auth_api_url": "auth_server_path"
+
+For file auth use the following fields:
+  "auth_method": "file",
+    "tokens": [
+      "valid_token_123",
+    ]

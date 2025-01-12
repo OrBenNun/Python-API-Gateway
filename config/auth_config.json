@@ -1,4 +1,8 @@
 {
-  "auth_method": "api",
-  "auth_api_url": "http://localhost:3000/auth"
+  "auth_method": "file",
+  "tokens": [
+    "valid_token_123",
+    "valid_token_456",
+    "valid_token_789"
+  ]
 }
