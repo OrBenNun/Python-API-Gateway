@@ -1,5 +1,6 @@
 from utils.auth.services.postgres_auth import PostgresAuth
 from utils.auth.services.mongo_auth import MongoAuth
+from utils.auth.services.api_auth import AuthServerAuth
 import json
 
 with open("config/auth_config.json", "r") as config_file:
@@ -14,3 +15,5 @@ def validate_token(token):
             return MongoAuth(config).validate_token(token)
         if config["database_type"] == "postgresql":
             return PostgresAuth(config).validate_token(token)
+    elif AUTH_METHOD == "api":
+        return AuthServerAuth(config).validate_token(token)
