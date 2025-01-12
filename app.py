@@ -9,7 +9,32 @@ from functools import wraps
 # from utils.auth.postgres_auth import validate_token_with_db
 from utils.auth.validate_token import validate_token
 
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from flask_limiter.errors import RateLimitExceeded
+import os
+
 app = Flask(__name__)
+
+API_RATE_LIMIT = os.getenv("API_RATE_LIMIT", "100 per hour")
+
+# Initialize Flask-Limiter
+limiter = Limiter(
+    get_remote_address,  # Use client's IP address for rate limiting
+    app=app,
+    default_limits=[API_RATE_LIMIT]  # Default rate limit for all routes
+)
+
+# Custom error handler for rate limiting
+@app.errorhandler(RateLimitExceeded)
+def handle_rate_limit_exceeded(e):
+    response = {
+        "error": "Rate limit exceeded",
+        "message": "You have exceeded the allowed number of requests. Please wait before trying again.",
+        "details": str(e.description)  # Optional, includes information about the limit
+    }
+    # Return a 429 Too Many Requests response
+    return jsonify(response), 429
 
 SERVICES = {
     
@@ -67,6 +92,7 @@ def create_route_function(endpoint, validation_rules):
     """
     Factory function to create unique route functions.
     """
+    @limiter.limit(API_RATE_LIMIT)  # Apply rate limit from .env to dynamic routes
     def route_function():
         """
         Function to handle requests for dynamically generated routes.

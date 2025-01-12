@@ -17,3 +17,7 @@ For file auth use the following fields:
     "tokens": [
       "valid_token_123",
     ]
+
+You should add your .env file with the following params:
+  GEMINI_API_KEY = Your Gemini API key
+  API_RATE_LIMIT = Rate limit by Flask rate limit, for exmaple: 10 per minute
