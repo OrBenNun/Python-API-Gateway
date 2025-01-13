@@ -19,7 +19,35 @@
             "required": true
           }
         },
+        "backend": {
+          "type": "static",
+          "url": "http://localhost:3000"
+        },
+        "path": "/auth/login",
+        "methods": ["POST"],
         "requires_auth": true
+      },
+      "send_email": {
+        "_description": "Send email to a user.",
+        "parameters": {
+          "from_user": {
+            "type": "string",
+            "max_length": 200,
+            "required": true
+          },
+          "to_user": {
+            "type": "string",
+            "max_length": 200,
+            "required": true
+          }
+        },
+        "backend": {
+          "type": "static",
+          "url": "http://localhost:3000"
+        },
+        "path": "/send_email",
+        "methods": ["POST"],
+        "requires_auth": false
       },
       "create_order": {
         "_description": "Creates a new order.",
@@ -41,6 +69,12 @@
             "required": true
           }
         },
+        "backend": {
+          "type": "static",
+          "url": "http://order-service.mycompany.com"
+        },
+        "path": "/orders/new",
+        "methods": ["POST"],
         "requires_auth": true
       }
     }

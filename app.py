@@ -86,6 +86,8 @@ def authenticate(f):
         if not is_valid:
             return jsonify({"error": "Unauthorized access"}), 401
         return f(*args, **kwargs)
+        # if the token is valid, return that its authorized
+        # return jsonify({"message": "Authorized"}), 200
     return decorated_function
 
 def create_route_function(endpoint, validation_rules):
@@ -97,13 +99,31 @@ def create_route_function(endpoint, validation_rules):
         """
         Function to handle requests for dynamically generated routes.
         """
-        if request.method == 'POST':
+        if request.method in validation_rules["rules"]["endpoints"][endpoint]["methods"]:
             request_data = request.get_json()
             if not request_data:
                 return jsonify({"error": "Request body must be JSON"}), 400
             
             try:
                 validate_api_request(endpoint, request_data, validation_rules)
+                print("Validation successful")
+                backend = validation_rules["rules"]["endpoints"][endpoint]["backend"]
+                if backend["type"] == "static":
+                    target_url = backend["url"] + validation_rules["rules"]["endpoints"][endpoint]["path"]
+                        # Forward the request to the backend microservice
+                    try:
+                        response = requests.request(
+                            method=request.method,
+                            url=target_url,
+                            headers={key: value for key, value in request.headers},
+                            json=request.json,
+                            params=request.args
+                        )
+                        return jsonify(response.json()), response.status_code
+                    except requests.exceptions.RequestException as e:
+                        return jsonify({"error": f"Failed to connect to the backend: {str(e)}"}), 503
+                else:
+                    raise Exception("Invalid backend type")
             except Exception as e:
                 return jsonify({"error": str(e)}), 400
             
