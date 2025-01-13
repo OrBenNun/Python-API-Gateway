@@ -42,8 +42,8 @@
           }
         },
         "backend": {
-          "type": "static",
-          "url": "http://localhost:3000"
+          "type": "discovery",
+          "service_name": "send-email"  
         },
         "path": "/send_email",
         "methods": ["POST"],

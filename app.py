@@ -14,6 +14,22 @@ from flask_limiter.util import get_remote_address
 from flask_limiter.errors import RateLimitExceeded
 import os
 
+import consul
+
+consul_client = consul.Consul(host="127.0.0.1", port=8500)
+
+def discover_service(service_name):
+    """
+    Query Consul to resolve the service name to an address.
+    """
+    services = consul_client.catalog.service(service_name)[1]
+    if not services:
+        return None
+    # Select the first available service instance (you can implement load balancing here)
+    service = services[0]
+    # return f"http://{service['Address']}:{service['ServicePort']}"
+    return f"http://{service['ServiceAddress']}:{service['ServicePort']}"
+
 app = Flask(__name__)
 
 API_RATE_LIMIT = os.getenv("API_RATE_LIMIT", "100 per hour")
@@ -122,10 +138,29 @@ def create_route_function(endpoint, validation_rules):
                         return jsonify(response.json()), response.status_code
                     except requests.exceptions.RequestException as e:
                         return jsonify({"error": f"Failed to connect to the backend: {str(e)}"}), 503
-                else:
-                    raise Exception("Invalid backend type")
+                elif backend["type"] == "discovery":
+                    service_name = backend["service_name"]
+                    service_url = discover_service(service_name)
+                    if not service_url:
+                        return jsonify({"error": f"Service '{service_name}' not found"}), 503
+                        # Construct the full URL for the microservice
+                    target_url = f"{service_url}{validation_rules['rules']['endpoints'][endpoint]['path']}"
+                # Forward the request to the backend microservice
+                    try:
+                        response = requests.request(
+                            method=request.method,
+                            url=target_url,
+                            headers={key: value for key, value in request.headers},
+                            json=request.json,
+                            params=request.args
+                        )
+                        return jsonify(response.json()), response.status_code
+                    except requests.exceptions.RequestException as e:
+                        return jsonify({"error": f"Failed to connect to the backend: {str(e)}"}), 503
             except Exception as e:
                 return jsonify({"error": str(e)}), 400
+        else:
+            return jsonify({"error": "Method not allowed"}), 405
             
             # Placeholder response (extend as needed)
             return jsonify({"message": f"Request to {endpoint} processed successfully."})
