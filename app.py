@@ -15,6 +15,13 @@ from flask_limiter.errors import RateLimitExceeded
 import os
 
 import consul
+from pybreaker import CircuitBreaker, CircuitBreakerError
+
+# Create a Circuit Breaker
+circuit_breaker = CircuitBreaker(
+    fail_max=3,  # Maximum number of failures before opening the circuit
+    reset_timeout=15  # Time (in seconds) to reset the circuit
+)
 
 consul_client = consul.Consul(host="127.0.0.1", port=8500)
 
@@ -146,17 +153,22 @@ def create_route_function(endpoint, validation_rules):
                         # Construct the full URL for the microservice
                     target_url = f"{service_url}{validation_rules['rules']['endpoints'][endpoint]['path']}"
                 # Forward the request to the backend microservice
+                    # try:
+                    #     response = requests.request(
+                    #         method=request.method,
+                    #         url=target_url,
+                    #         headers={key: value for key, value in request.headers},
+                    #         json=request.json,
+                    #         params=request.args
+                    #     )
+                    #     return jsonify(response.json()), response.status_code
+                    # except requests.exceptions.RequestException as e:
+                    #     return jsonify({"error": f"Failed to connect to the backend: {str(e)}"}), 503
                     try:
-                        response = requests.request(
-                            method=request.method,
-                            url=target_url,
-                            headers={key: value for key, value in request.headers},
-                            json=request.json,
-                            params=request.args
-                        )
+                        response = circuit_breaker.call(requests.request, method=request.method, url=target_url, headers={key: value for key, value in request.headers}, json=request.json, params=request.args)
                         return jsonify(response.json()), response.status_code
-                    except requests.exceptions.RequestException as e:
-                        return jsonify({"error": f"Failed to connect to the backend: {str(e)}"}), 503
+                    except CircuitBreakerError:
+                        return jsonify({"error": "The circuit is open. Please try again later."}), 503
             except Exception as e:
                 return jsonify({"error": str(e)}), 400
         else:
